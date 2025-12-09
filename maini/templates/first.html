@@ -1,0 +1,59 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FitMind – Your Daily Dose of Balance</title>
+    <link rel="stylesheet" href="{% static 'first.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar">
+        <div class="logo">
+            <img src="https://cdn-icons-png.flaticon.com/512/4727/4727427.png" alt="logo">
+            <span>FitMind</span>
+        </div>
+
+        <ul class="nav-links">
+            <li><a href="{% url 'first' %}">Home</a></li>
+            <li><a href="#">Dashboard</a></li>
+            <li><a href="#">Workouts</a></li>
+            <li><a href="#">Meditation</a></li>
+            <li><a href="#">Nutrition</a></li>
+
+            <!-- Login / Register -->
+            <li><a href="{% url 'login' %}">Login</a></li>
+            <li><a href="{% url 'register' %}">Register</a></li>
+        </ul>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <section class="hero">
+        <h1>Your Daily Dose of Balance</h1>
+
+        <div class="cards-container">
+
+            <div class="card">
+                <div class="icon-box">
+                    🏃
+                </div>
+                <h2>Physical Prime</h2>
+                <p>Workouts & Meal Plans</p>
+            </div>
+
+            <div class="card">
+                <div class="icon-box">
+                    🧘
+                </div>
+                <h2>Personalized</h2>
+                <p>Meditation & Stress Relief</p>
+            </div>
+
+        </div>
+    </section>
+
+</body>
+</html>
