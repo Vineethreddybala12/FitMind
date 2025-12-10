@@ -1,0 +1,46 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard - FitMind</title>
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar">
+        <div class="logo">
+            <span>⚡</span> FITMIND
+        </div>
+
+        <ul class="nav-links">
+            <li><a href="{% url 'first' %}">Home</a></li>
+            <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li><a href="{% url 'workouts' %}">Workouts</a></li>
+            <li><a href="{% url 'meditation' %}">Meditation</a></li>
+            <li><a href="{% url 'nutrition' %}">Nutrition</a></li>
+            <li><a href="{% url 'chatbot' %}">Chatbot</a></li>
+
+            {% if request.user.is_authenticated %}
+                <li><a href="#">Hi, {{ request.user.first_name|default:request.user.username }}</a></li>
+                <li><a href="{% url 'logout' %}">Logout</a></li>
+            {% else %}
+                <li><a href="{% url 'login' %}">Login</a></li>
+                <li><a href="{% url 'register' %}">Register</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+
+    <!-- DASHBOARD SECTION -->
+    <section class="page-container">
+        <div class="page-header">
+            <h1>Your Dashboard</h1>
+            <p>Track your fitness progress and achievements</p>
+        </div>
+    </section>
+
+</body>
+</html>

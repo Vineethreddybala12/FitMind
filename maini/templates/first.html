@@ -3,55 +3,107 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FitMind – Your Daily Dose of Balance</title>
-    <link rel="stylesheet" href="{% static 'first.css' %}">
+    <title>FitMind – Your Mental Health Companion</title>
+    <link rel="stylesheet" href="{% static 'style.css' %}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
 
     <!-- NAVBAR -->
     <nav class="navbar">
         <div class="logo">
-            <img src="https://cdn-icons-png.flaticon.com/512/4727/4727427.png" alt="logo">
-            <span>FitMind</span>
+            <span>⚡</span> FITMIND
         </div>
 
         <ul class="nav-links">
             <li><a href="{% url 'first' %}">Home</a></li>
-            <li><a href="#">Dashboard</a></li>
-            <li><a href="#">Workouts</a></li>
-            <li><a href="#">Meditation</a></li>
-            <li><a href="#">Nutrition</a></li>
+            <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li><a href="{% url 'workouts' %}">Workouts</a></li>
+            <li><a href="{% url 'meditation' %}">Meditation</a></li>
+            <li><a href="{% url 'nutrition' %}">Nutrition</a></li>
+            <li><a href="{% url 'chatbot' %}">Chatbot</a></li>
 
-            <!-- Login / Register -->
-            <li><a href="{% url 'login' %}">Login</a></li>
-            <li><a href="{% url 'register' %}">Register</a></li>
+            {% if request.user.is_authenticated %}
+                <li><a href="#">Hi, {{ request.user.first_name|default:request.user.username }}</a></li>
+                <li><a href="{% url 'logout' %}">Logout</a></li>
+            {% else %}
+                <li><a href="{% url 'login' %}">Login</a></li>
+                <li><a href="{% url 'register' %}">Register</a></li>
+            {% endif %}
         </ul>
     </nav>
 
-    <!-- HERO SECTION -->
+    <!-- HERO SECTION WITH LOGIN -->
     <section class="hero">
-        <h1>Your Daily Dose of Balance</h1>
+        <div class="hero-content">
+            <h1>"Fitness is not a destination, it's a journey"</h1>
+            <p class="tagline">Your Mental Health Companion</p>
+            <p>and we're right here with you. Every step, every challenge, every win... we've got your back.</p>
+            <p style="font-weight: 600; margin-top: 20px;">Join FitMind today and take the first step towards a healthier, happier you. Our expert-guided programs and supportive community are here to help you thrive.</p>
+            <a href="{% url 'register' %}" class="cta-button">Get Started</a>
+        </div>
 
-        <div class="cards-container">
-
-            <div class="card">
-                <div class="icon-box">
-                    🏃
+        <div class="login-card-container">
+            {% if request.user.is_authenticated %}
+                <div class="auth-card">
+                    <h2>Welcome Back! 👋</h2>
+                    <p class="subtitle">{{ request.user.first_name|default:request.user.username }}</p>
+                    <p style="text-align: center; color: #666; margin-bottom: 20px;">Ready to continue your fitness journey?</p>
+                    <a href="{% url 'dashboard' %}" class="cta-button" style="display: block; text-align: center;">Go to Dashboard</a>
                 </div>
-                <h2>Physical Prime</h2>
-                <p>Workouts & Meal Plans</p>
-            </div>
+            {% else %}
+                <div class="auth-card">
+                    <h2>Welcome Back, Friend</h2>
+                    <p class="welcome-text">Login to continue</p>
+                    
+                    {% if messages %}
+                        <div class="messages">
+                            {% for message in messages %}
+                                <div class="message {{ message.tags }}">{{ message }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
 
-            <div class="card">
-                <div class="icon-box">
-                    🧘
+                    <form method="POST" action="{% url 'login' %}">
+                        {% csrf_token %}
+                        <div class="input-group">
+                            <input type="email" name="email" placeholder="Email" required>
+                        </div>
+                        <div class="input-group">
+                            <input type="password" name="password" placeholder="Password" required>
+                        </div>
+
+                        <div class="remember-forgot">
+                            <label>
+                                <input type="checkbox" name="remember">
+                                <span>Remember me</span>
+                            </label>
+                            <a href="#">Forgot Password?</a>
+                        </div>
+
+                        <button type="submit" class="submit-btn">Login</button>
+                    </form>
+
+                    <div class="divider">Or</div>
+
+                    <div class="social-buttons">
+                        <button class="social-btn google">
+                            <span>🔍</span> Google
+                        </button>
+                        <button class="social-btn apple">
+                            <span>🍎</span> Apple
+                        </button>
+                        <button class="social-btn facebook" style="grid-column: 1 / -1;">
+                            <span>👤</span> Facebook
+                        </button>
+                    </div>
+
+                    <div class="auth-link">
+                        New here? <a href="{% url 'register' %}">Create an account</a>
+                    </div>
                 </div>
-                <h2>Personalized</h2>
-                <p>Meditation & Stress Relief</p>
-            </div>
-
+            {% endif %}
         </div>
     </section>
 
