@@ -13,5 +13,9 @@ urlpatterns = [
     path('register/', register, name='register'),
     path('logout/', logout, name='logout'),
     path('chatbot/', chatbot, name='chatbot'),
+    # API for chat sessions
+    path('api/chatsessions/', api_chatsessions, name='api_chatsessions'),
+    path('api/chatsessions/<int:session_id>/messages/', api_session_messages, name='api_session_messages'),
+    path('api/profile/', api_profile, name='api_profile'),
     path('admin/', admin.site.urls),
 ]

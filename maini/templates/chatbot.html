@@ -261,16 +261,43 @@
     </nav>
 
     <!-- CHATBOT SECTION -->
-    <div class="chatbot-container">
+    <div style="max-width:1100px; margin:30px auto; display:flex; gap:20px;">
+        <!-- Sidebar for sessions -->
+        <aside style="width:260px;">
+            <div style="background:white; border-radius:12px; padding:12px; box-shadow:0 4px 20px rgba(0,0,0,0.08); height:600px; display:flex; flex-direction:column;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                    <strong>Chats</strong>
+                    <button id="newSessionBtn" style="background:#4ecdc4; color:white; border:none; padding:6px 10px; border-radius:8px; cursor:pointer;">+ New</button>
+                </div>
+                <div id="sessionsList" style="overflow:auto; flex:1; padding-right:6px;"></div>
+                <div style="margin-top:8px; border-top:1px solid #eee; padding-top:8px;">
+                    <strong style="font-size:0.95em;">Your profile</strong>
+                    <div style="font-size:0.85em; margin-top:6px;">
+                        <div style="margin-bottom:6px;"><label for="pf_age">Age:</label><input id="pf_age" type="number" style="width:100%; padding:4px; border:1px solid #ddd; border-radius:4px; box-sizing:border-box;"/></div>
+                        <div style="margin-bottom:6px;"><label for="pf_height">Height (cm):</label><input id="pf_height" type="number" style="width:100%; padding:4px; border:1px solid #ddd; border-radius:4px; box-sizing:border-box;"/></div>
+                        <div style="margin-bottom:6px;"><label for="pf_weight">Weight (kg):</label><input id="pf_weight" type="number" style="width:100%; padding:4px; border:1px solid #ddd; border-radius:4px; box-sizing:border-box;"/></div>
+                        <div style="margin-bottom:6px;"><label for="pf_sleep">Sleep hrs:</label><input id="pf_sleep" type="number" step="0.1" style="width:100%; padding:4px; border:1px solid #ddd; border-radius:4px; box-sizing:border-box;"/></div>
+                        <div style="margin-bottom:6px;"><label for="pf_activity_mins">Activity mins/day:</label><input id="pf_activity_mins" type="number" style="width:100%; padding:4px; border:1px solid #ddd; border-radius:4px; box-sizing:border-box;"/></div>
+                        <div style="margin-bottom:6px;"><label for="pf_activity_level">Activity level:</label><select id="pf_activity_level" style="width:100%; padding:4px; border:1px solid #ddd; border-radius:4px; box-sizing:border-box;"><option value="low">Low</option><option value="moderate" selected>Moderate</option><option value="high">High</option></select></div>
+                        <div style="margin-bottom:6px;"><label for="pf_stress_level">Stress level:</label><select id="pf_stress_level" style="width:100%; padding:4px; border:1px solid #ddd; border-radius:4px; box-sizing:border-box;"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select></div>
+                        <div style="display:flex; gap:8px; margin-top:8px;"><button id="saveProfileBtn" style="flex:1; background:#4ecdc4; color:white; border:none; padding:8px; border-radius:8px; cursor:pointer; font-size:0.85em;">Save</button><button id="loadProfileBtn" style="flex:1; background:#eee; border:none; padding:8px; border-radius:8px; cursor:pointer; font-size:0.85em;">Load</button></div>
+                        <div id="profileStatus" style="margin-top:6px; font-size:0.8em; color:#666; height:1.2em;"></div>
+                        <div id="profileSummary" style="margin-top:6px; font-size:0.85em; font-weight:bold; color:#4ecdc4;"></div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <div class="chatbot-container">
         <div class="chatbot-header">
             <h2>🤖 FitMind Assistant</h2>
             <p>Your personal fitness and wellness chatbot</p>
         </div>
 
         <div class="messages-container" id="messagesContainer">
-            <div class="message bot">
+            <div class="message bot" id="welcomeMessage">
                 <div class="message-content">
-                    Hi there! 👋 I'm your FitMind Assistant. I'm here to help you with fitness, meditation, nutrition, and wellness tips. What can I help you with today?
+                    Hi 👋 I’m FitMind — your friendly wellness coach. I can help with meditation, workouts, nutrition, sleep, and habits. Tell me what you'd like help with (e.g., "5-minute meditation", "15-min workout", or "meal swap").
                 </div>
             </div>
         </div>
@@ -293,6 +320,197 @@
     </div>
 
     <script>
+        // CSRF helper - ensure token is available
+        function getCsrf() {
+            let token = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+            if (!token) {
+                console.warn('No CSRF token found in DOM, using empty string');
+                token = '';
+            }
+            console.log('CSRF token:', token ? 'present' : 'missing');
+            return token;
+        }
+
+        let currentSessionId = null;
+
+        async function fetchSessions(){
+            const res = await fetch('/api/chatsessions/');
+            if(!res.ok) return;
+            const j = await res.json();
+            const list = document.getElementById('sessionsList');
+            list.innerHTML = '';
+            j.sessions.forEach(s => {
+                const el = document.createElement('div');
+                el.style.padding = '8px';
+                el.style.borderRadius = '8px';
+                el.style.cursor = 'pointer';
+                el.style.marginBottom = '6px';
+                el.style.background = '#fbfbfb';
+                el.textContent = s.title || ('Chat ' + s.id);
+                el.onclick = () => loadSession(s.id);
+                list.appendChild(el);
+            });
+        }
+
+        async function createSession(){
+            const title = prompt('Title for new chat (optional)') || 'New chat';
+            const res = await fetch('/api/chatsessions/', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json','X-CSRFToken': getCsrf()},
+                body: JSON.stringify({title})
+            });
+            if(res.ok){ await fetchSessions(); }
+        }
+
+        async function loadSession(id){
+            currentSessionId = id;
+            const res = await fetch(`/api/chatsessions/${id}/messages/`);
+            if(!res.ok) return;
+            const j = await res.json();
+            const container = document.getElementById('messagesContainer');
+            container.innerHTML = '';
+            j.messages.forEach(m => addMessageToChat(m.content, m.role));
+        }
+
+        document.getElementById('newSessionBtn').addEventListener('click', createSession);
+
+        // Initialize
+        fetchSessions();
+        // Profile functions
+        async function loadProfile(){
+            try {
+                console.log('Loading profile...');
+                const res = await fetch('/api/profile/');
+                const statusEl = document.getElementById('profileStatus');
+                if(!res.ok) {
+                    console.error('Profile load failed:', res.status, res.statusText);
+                    statusEl.textContent = `Error: ${res.status} ${res.statusText}`;
+                    return;
+                }
+                const j = await res.json();
+                console.log('Profile loaded:', j);
+                const p = j.profile || {};
+                
+                // Load values, handle null/undefined properly
+                document.getElementById('pf_age').value = (p.age !== null && p.age !== undefined && p.age !== 0) ? p.age : '';
+                document.getElementById('pf_height').value = (p.height_cm !== null && p.height_cm !== undefined && p.height_cm !== 0) ? p.height_cm : '';
+                document.getElementById('pf_weight').value = (p.weight_kg !== null && p.weight_kg !== undefined && p.weight_kg !== 0) ? p.weight_kg : '';
+                document.getElementById('pf_sleep').value = (p.sleep_hours !== null && p.sleep_hours !== undefined && p.sleep_hours !== 0) ? p.sleep_hours : '';
+                document.getElementById('pf_activity_mins').value = (p.activity_minutes !== null && p.activity_minutes !== undefined && p.activity_minutes !== 0) ? p.activity_minutes : '';
+                document.getElementById('pf_activity_level').value = p.activity_level || 'moderate';
+                document.getElementById('pf_stress_level').value = p.stress_level || 'medium';
+                showProfileSummary(p);
+                statusEl.textContent = '';
+            } catch(e) {
+                console.error('Profile load exception:', e);
+                document.getElementById('profileStatus').textContent = 'Load error';
+            }
+        }
+
+        async function saveProfile(){
+            try {
+                // Helper to safely convert to number or null
+                const toNum = (val) => {
+                    const n = Number(val);
+                    return isNaN(n) || val === '' ? null : n;
+                };
+                
+                const payload = {
+                    age: toNum(document.getElementById('pf_age').value),
+                    height_cm: toNum(document.getElementById('pf_height').value),
+                    weight_kg: toNum(document.getElementById('pf_weight').value),
+                    sleep_hours: toNum(document.getElementById('pf_sleep').value),
+                    activity_minutes: toNum(document.getElementById('pf_activity_mins').value),
+                    activity_level: document.getElementById('pf_activity_level').value || 'moderate',
+                    stress_level: document.getElementById('pf_stress_level').value || 'medium',
+                };
+                console.log('Saving profile:', payload);
+                const statusEl = document.getElementById('profileStatus');
+
+                const headers = {'Content-Type':'application/json'};
+                const csrfToken = getCsrf();
+                if (csrfToken) {
+                    headers['X-CSRFToken'] = csrfToken;
+                }
+
+                const res = await fetch('/api/profile/', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(payload)
+                });
+                console.log('Save response status:', res.status);
+                const responseText = await res.text();
+                console.log('Save response body:', responseText);
+                
+                if(res.ok){
+                    try {
+                        const j = JSON.parse(responseText);
+                        console.log('Saved successfully:', j);
+                        
+                        const profile = j.profile || {};
+                        showProfileSummary(profile);
+                        statusEl.textContent = 'Saved ✓';
+                        
+                        // Auto-generate a personalized message based on saved profile
+                        const age = profile.age || '?';
+                        const stress = profile.stress_level || 'medium';
+                        const activity = profile.activity_level || 'moderate';
+                        const sleep = profile.sleep_hours || '?';
+                        const bmi = profile.bmi ? profile.bmi.toFixed(1) : '?';
+                        
+                        // Create an automatic wellness greeting
+                        let autoMessage = `I've saved my profile: Age ${age}, BMI ${bmi} (${profile.bmi_category || 'Normal'}), Sleep ${sleep}hrs, ${stress} stress, ${activity} activity level. Give me personalized wellness advice.`;
+                        
+                        // Send this auto-message to chatbot
+                        addMessageToChat(autoMessage, 'user');
+                        showTypingIndicator();
+                        
+                        const chatResponse = await fetch('{% url "chatbot" %}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken || ''
+                            },
+                            body: JSON.stringify({ message: autoMessage })
+                        });
+                        
+                        removeTypingIndicator();
+                        
+                        if(chatResponse.ok){
+                            const chatData = await chatResponse.json();
+                            addMessageToChat(chatData.response, 'bot');
+                        } else {
+                            addMessageToChat('Error getting personalized response.', 'bot');
+                        }
+                        
+                        setTimeout(() => statusEl.textContent = '', 3000);
+                    } catch(e) {
+                        console.error('Error parsing response:', e);
+                        statusEl.textContent = 'Saved but could not parse response';
+                    }
+                } else {
+                    console.error('Save failed:', res.status, responseText);
+                    statusEl.textContent = `Save failed: ${res.status}`;
+                }
+            } catch(e) {
+                console.error('Profile save exception:', e);
+                document.getElementById('profileStatus').textContent = 'Save error: ' + e.message;
+            }
+        }
+
+        function showProfileSummary(p){
+            const el = document.getElementById('profileSummary');
+            if(!p) { el.textContent = ''; return }
+            el.textContent = `BMI: ${p.bmi || '—'} ${p.bmi_category ? '('+p.bmi_category+')' : ''}`;
+        }
+
+        document.getElementById('loadProfileBtn').addEventListener('click', loadProfile);
+        document.getElementById('saveProfileBtn').addEventListener('click', saveProfile);
+        // Load profile on open
+        loadProfile();
+    </script>
+
+    <script>
         const messagesContainer = document.getElementById('messagesContainer');
         const chatForm = document.getElementById('chatForm');
         const messageInput = document.getElementById('messageInput');
@@ -311,7 +529,9 @@
             showTypingIndicator();
 
             try {
-                // Send message to server
+                console.log('Sending message:', userMessage);
+                
+                // Send message to server - profile is automatically fetched on server side
                 const response = await fetch('{% url "chatbot" %}', {
                     method: 'POST',
                     headers: {
@@ -321,11 +541,14 @@
                     body: JSON.stringify({ message: userMessage })
                 });
 
+                console.log('Response status:', response.status);
+                
                 if (!response.ok) {
-                    throw new Error('Failed to send message');
+                    throw new Error(`Failed to send message: ${response.status}`);
                 }
 
                 const data = await response.json();
+                console.log('Received response:', data);
                 removeTypingIndicator();
                 addMessageToChat(data.response, 'bot');
 

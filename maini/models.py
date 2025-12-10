@@ -91,6 +91,54 @@ class UserProgress(models.Model):
         return f"{self.user.username}'s Progress"
 
 
+# User profile for chatbot personalization
+class UserProfile(models.Model):
+    ACTIVITY_CHOICES = [
+        ('low', 'Low'),
+        ('moderate', 'Moderate'),
+        ('high', 'High'),
+    ]
+
+    STRESS_CHOICES = [
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+    ]
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    age = models.IntegerField(null=True, blank=True)
+    height_cm = models.FloatField(null=True, blank=True, help_text='Height in centimeters')
+    weight_kg = models.FloatField(null=True, blank=True, help_text='Weight in kilograms')
+    sleep_hours = models.FloatField(null=True, blank=True, help_text='Average sleep hours per night')
+    activity_minutes = models.IntegerField(null=True, blank=True, help_text='Typical active minutes per day')
+    activity_level = models.CharField(max_length=20, choices=ACTIVITY_CHOICES, default='moderate')
+    stress_level = models.CharField(max_length=20, choices=STRESS_CHOICES, default='medium')
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def bmi(self):
+        try:
+            if self.height_cm and self.weight_kg:
+                m = self.height_cm / 100.0
+                return round(self.weight_kg / (m * m), 1)
+        except Exception:
+            return None
+
+    def bmi_category(self):
+        b = self.bmi()
+        if b is None:
+            return None
+        if b < 18.5:
+            return 'Underweight'
+        if b < 25:
+            return 'Normal'
+        if b < 30:
+            return 'Overweight'
+        return 'Obese'
+
+    def __str__(self):
+        return f"{self.user.username} profile"
+
+
 # User Workout Assignments
 class UserWorkout(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_workouts')
@@ -145,3 +193,33 @@ class ChatMessage(models.Model):
     
     def __str__(self):
         return f"{self.user.username} - {self.timestamp.strftime('%Y-%m-%d %H:%M')}"
+
+
+# Chat sessions (for multiple separate chat threads per user)
+class ChatSession(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_sessions')
+    title = models.CharField(max_length=200, default='New chat')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.title} ({self.user.username})"
+
+
+class SessionMessage(models.Model):
+    ROLE_CHOICES = [
+        ('user', 'User'),
+        ('assistant', 'Assistant'),
+        ('system', 'System'),
+    ]
+
+    session = models.ForeignKey(ChatSession, on_delete=models.CASCADE, related_name='messages')
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.session.title} - {self.role} @ {self.created_at.strftime('%Y-%m-%d %H:%M')}"
