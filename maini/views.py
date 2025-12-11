@@ -140,6 +140,7 @@ def chatbot(request):
 def generate_chatbot_response(user_message, profile=None):
     """Generate personalized responses based on message and user profile."""
     message_lower = user_message.lower()
+    words = set(message_lower.split())
 
     # Safety checks for crisis language
     crisis_terms = ['suicide', 'self-harm', 'kill myself', "i can't go on", 'hurt myself', 'want to die']
@@ -154,7 +155,8 @@ def generate_chatbot_response(user_message, profile=None):
         return f"Direct Answer: {direct}\n\nPersonalized Guidance: {guidance}\n\nMotivation Line: {motivation}"
 
     # Meditation & Mindfulness
-    if any(word in message_lower for word in ['meditation', 'mindfulness', 'breathe', 'breathing', 'stress', 'anxiety', 'calm']):
+    meditation_keywords = {'meditation', 'mindfulness', 'breathe', 'breathing', 'relax', 'relaxation', 'calm', 'peace', 'focus', 'anxiety', 'worry'}
+    if any(word in words for word in meditation_keywords) or 'stress' in message_lower:
         direct = "Try a short guided breathing practice to settle your mind."
         if profile and profile.stress_level == 'high':
             direct += " Given your high stress level, this is especially important for you."
@@ -169,7 +171,8 @@ def generate_chatbot_response(user_message, profile=None):
         return f"Direct Answer: {direct}\n\nPersonalized Guidance: {guidance}\n\nMotivation Line: {motivation}"
 
     # Workout & Exercise
-    if any(word in message_lower for word in ['workout', 'exercise', 'training', 'gym', 'pushups', 'squat', 'fitness']):
+    workout_keywords = {'workout', 'exercise', 'training', 'gym', 'pushups', 'squat', 'fitness', 'run', 'walk', 'cardio', 'strength', 'sport', 'active', 'move'}
+    if any(word in words for word in workout_keywords):
         direct = "You can do a short, effective bodyweight workout right now."
         
         # Personalize based on activity level
@@ -190,13 +193,14 @@ def generate_chatbot_response(user_message, profile=None):
                        "3) Cool down with stretching. Total time ~15–20 minutes.")
         
         if profile and profile.sleep_hours and profile.sleep_hours < 6:
-            guidance += f"\n\nTip: Good sleep ({profile.sleep_hours}hrs is low) helps recovery. Prioritize sleep tonight!"
+            guidance += f"\n\nTip: Your sleep is low ({profile.sleep_hours}hrs). Good recovery sleep helps. Prioritize sleep tonight!"
         
         motivation = "Consistency beats intensity — you're building a healthy habit."
         return f"Direct Answer: {direct}\n\nPersonalized Guidance: {guidance}\n\nMotivation Line: {motivation}"
 
     # Nutrition & Diet
-    if any(word in message_lower for word in ['diet', 'nutrition', 'meal', 'calories', 'protein', 'vegetarian', 'vegan', 'snack', 'eat', 'food', 'weight']):
+    nutrition_keywords = {'diet', 'nutrition', 'meal', 'calories', 'protein', 'vegetarian', 'vegan', 'snack', 'eat', 'food', 'weight', 'cook', 'recipe', 'healthy'}
+    if any(word in words for word in nutrition_keywords):
         direct = "Aim for balanced meals with protein, vegetables, and whole grains."
         
         # Personalize based on BMI
@@ -218,7 +222,8 @@ def generate_chatbot_response(user_message, profile=None):
         return f"Direct Answer: {direct}\n\nPersonalized Guidance: {guidance}\n\nMotivation Line: {motivation}"
 
     # Sleep & Rest
-    if any(word in message_lower for word in ['sleep', 'insomnia', 'tired', 'rest', 'fatigue']):
+    sleep_keywords = {'sleep', 'insomnia', 'tired', 'rest', 'fatigue', 'sleepy', 'awake', 'bed', 'nap', 'dream'}
+    if any(word in words for word in sleep_keywords):
         direct = "Improve sleep with a consistent wind-down routine."
         
         if profile and profile.sleep_hours:
@@ -236,12 +241,50 @@ def generate_chatbot_response(user_message, profile=None):
         motivation = "Better sleep improves everything — small changes help a lot."
         return f"Direct Answer: {direct}\n\nPersonalized Guidance: {guidance}\n\nMotivation Line: {motivation}"
 
-    # General wellness question
-    if len(user_message.split()) < 6 or user_message.endswith('?'):
-        direct = "Thanks for asking — could you tell me one specific goal or area (meditation, workout, nutrition, sleep)?"
+    # Mental Health & Mood (new)
+    mood_keywords = {'mood', 'happy', 'sad', 'depressed', 'energy', 'motivation', 'confidence', 'brain', 'mental', 'feeling', 'emotion'}
+    if any(word in words for word in mood_keywords):
+        direct = "Taking care of your mental health is just as important as physical fitness."
         
         if profile:
-            # Suggest based on profile
+            suggestions = []
+            if profile.stress_level == 'high':
+                suggestions.append("meditation or breathing exercises (you have high stress)")
+            if profile.sleep_hours and profile.sleep_hours < 6:
+                suggestions.append("improving sleep (you're sleeping less than ideal)")
+            if profile.activity_level == 'low':
+                suggestions.append("light exercise (movement boosts mood)")
+            
+            if suggestions:
+                direct += f" Try: {', '.join(suggestions)}."
+        
+        guidance = ("1) Start your day with 5 minutes of gratitude or journaling. "
+                   "2) Move your body — even a 10-minute walk releases feel-good chemicals. "
+                   "3) Connect with someone or practice self-compassion.")
+        
+        motivation = "Small daily wins compound — you're investing in yourself."
+        return f"Direct Answer: {direct}\n\nPersonalized Guidance: {guidance}\n\nMotivation Line: {motivation}"
+
+    # Habit Building (new)
+    habit_keywords = {'habit', 'routine', 'goal', 'progress', 'improve', 'change', 'build', 'track', 'consistency'}
+    if any(word in words for word in habit_keywords):
+        direct = "Building healthy habits takes patience and self-compassion."
+        
+        guidance = ("1) Start small: one tiny habit (5 min). 2) Track daily for a week — see momentum. "
+                   "3) Add the next habit when the first feels automatic (usually ~2–3 weeks).")
+        
+        if profile:
+            guidance += f"\n\nYour profile shows stress level '{profile.stress_level}' and activity '{profile.activity_level}' — start with what feels manageable!"
+        
+        motivation = "Progress over perfection — every small step counts."
+        return f"Direct Answer: {direct}\n\nPersonalized Guidance: {guidance}\n\nMotivation Line: {motivation}"
+
+    # General wellness question or short message
+    if len(user_message.split()) < 6 or user_message.endswith('?'):
+        direct = "I can help with meditation, workouts, nutrition, sleep, mood, and habit-building."
+        
+        if profile:
+            # Suggest based on profile weaknesses
             suggestions = []
             if profile.stress_level == 'high':
                 suggestions.append("meditation (your stress is high)")
@@ -249,21 +292,24 @@ def generate_chatbot_response(user_message, profile=None):
                 suggestions.append("sleep routine (your sleep is low)")
             if profile.activity_minutes and profile.activity_minutes < 30:
                 suggestions.append("a quick workout (boost your activity)")
+            if not profile.age:
+                suggestions.append("set up your profile (helps me personalize better)")
             
             if suggestions:
-                direct += f"\n\nBased on your profile, try: {', '.join(suggestions)}."
+                direct += f"\n\nTry: {', '.join(suggestions)}."
         
-        motivation = "Tell me a little more and I'll make a short, practical plan for you."
+        motivation = "Tell me more and I'll give you a short, practical plan!"
         return f"Direct Answer: {direct}\n\nMotivation Line: {motivation}"
 
     # Default friendly, helpful reply
-    direct = "I can help with meditation, workouts, nutrition, sleep, and habit-building. What would you like help with?"
-    guidance = "Choose one: meditation (5 min), a quick workout (15 min), or a simple meal swap. I'll give a short plan."
+    direct = "I can help with meditation, workouts, nutrition, sleep, mood, and habit-building. What would you like help with?"
+    guidance = "Choose one topic: meditation (5 min), a quick workout (15 min), a meal swap, better sleep, or building a habit. I'll give a short plan."
     
     if profile:
-        guidance += f"\n\nYour profile shows: BMI {profile.bmi():.1f} ({profile.bmi_category()}), stress level {profile.stress_level}. I can tailor my suggestions!"
+        bmi = profile.bmi()
+        guidance += f"\n\nYour profile shows: BMI {bmi:.1f} ({profile.bmi_category()}), stress level '{profile.stress_level}', activity level '{profile.activity_level}'. I can tailor advice!"
     
-    motivation = "You're taking a great step—let's make it simple and do-able."
+    motivation = "You're taking a great step — let's make it simple and do-able."
     return f"Direct Answer: {direct}\n\nPersonalized Guidance: {guidance}\n\nMotivation Line: {motivation}"
 
 
