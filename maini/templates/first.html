@@ -8,6 +8,139 @@
     <link rel="stylesheet" href="{% static 'first.css' %}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Floating Chatbot Button */
+        .chatbot-float-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(78, 205, 196, 0.4);
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .chatbot-float-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(78, 205, 196, 0.6);
+        }
+
+        .chatbot-float-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Modal Styles */
+        .chatbot-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 200;
+            justify-content: flex-end;
+            align-items: flex-end;
+        }
+
+        .chatbot-modal.active {
+            display: flex;
+        }
+
+        .chatbot-modal-content {
+            width: 100%;
+            max-width: 450px;
+            height: 600px;
+            background: white;
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -5px 30px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .chatbot-modal-header {
+            background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+            color: white;
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .chatbot-modal-header h3 {
+            margin: 0;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chatbot-modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            transition: transform 0.2s;
+        }
+
+        .chatbot-modal-close:hover {
+            transform: rotate(90deg);
+        }
+
+        .chatbot-iframe-container {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .chatbot-iframe-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 600px) {
+            .chatbot-float-btn {
+                bottom: 20px;
+                right: 20px;
+                width: 55px;
+                height: 55px;
+                font-size: 24px;
+            }
+
+            .chatbot-modal-content {
+                max-width: 100%;
+                height: 70vh;
+                border-radius: 16px 16px 0 0;
+            }
+        }
+    </style>
 </head>
 <body>
 
@@ -107,6 +240,52 @@
             {% endif %}
         </div>
     </section>
+
+    <!-- Floating Chatbot Button -->
+    <button class="chatbot-float-btn" id="chatbotFloatBtn" title="Open FitMind Chat">🤖</button>
+
+    <!-- Chatbot Modal -->
+    <div class="chatbot-modal" id="chatbotModal">
+        <div class="chatbot-modal-content">
+            <div class="chatbot-modal-header">
+                <h3>🤖 FitMind Chat</h3>
+                <button class="chatbot-modal-close" id="chatbotModalClose">&times;</button>
+            </div>
+            <div class="chatbot-iframe-container">
+                <iframe src="{% url 'chatbot' %}" title="FitMind Chatbot"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chatbotFloatBtn = document.getElementById('chatbotFloatBtn');
+        const chatbotModal = document.getElementById('chatbotModal');
+        const chatbotModalClose = document.getElementById('chatbotModalClose');
+
+        // Open chatbot modal
+        chatbotFloatBtn.addEventListener('click', () => {
+            chatbotModal.classList.add('active');
+        });
+
+        // Close chatbot modal
+        chatbotModalClose.addEventListener('click', () => {
+            chatbotModal.classList.remove('active');
+        });
+
+        // Close modal when clicking outside the content
+        chatbotModal.addEventListener('click', (e) => {
+            if (e.target === chatbotModal) {
+                chatbotModal.classList.remove('active');
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && chatbotModal.classList.contains('active')) {
+                chatbotModal.classList.remove('active');
+            }
+        });
+    </script>
 
 </body>
 </html>
